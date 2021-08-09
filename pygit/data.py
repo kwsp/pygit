@@ -8,6 +8,7 @@ GIT_DIR = pathlib.Path(".pygit")
 
 def init():
     GIT_DIR.mkdir()
+    (GIT_DIR / "HEAD").touch()
     (GIT_DIR / "objects").mkdir()
 
 
@@ -15,6 +16,16 @@ def check_initialised():
     if not GIT_DIR.exists():
         print("fatal: not a git repository", file=sys.stderr)
         sys.exit(-1)
+
+
+def set_head(commit_oid: str):
+    with (GIT_DIR / "HEAD").open("w") as fp:
+        fp.write(commit_oid)
+
+
+def get_head() -> str:
+    with (GIT_DIR / "HEAD").open("r") as fp:
+        return fp.read()
 
 
 def get_oid_path(oid: str) -> pathlib.Path:

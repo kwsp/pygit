@@ -1,4 +1,5 @@
 import argparse
+import textwrap
 import sys
 
 from pygit import data
@@ -37,7 +38,14 @@ def parse_args():
 
     read_tree_parser = commands.add_parser("read-tree")
     read_tree_parser.set_defaults(func=read_tree)
-    read_tree_parser.add_argument('tree')
+    read_tree_parser.add_argument("tree")
+
+    commit_tree_parser = commands.add_parser("commit")
+    commit_tree_parser.set_defaults(func=commit)
+    commit_tree_parser.add_argument("-m", "--message", required=True)
+
+    log_tree_parser = commands.add_parser("log")
+    log_tree_parser.set_defaults(func=log)
 
     return parser.parse_args()
 
@@ -63,6 +71,23 @@ def write_tree(args):
     oid = base.write_tree()
     print(oid)
 
+
 def read_tree(args):
     data.check_initialised()
     base.read_tree(args.tree)
+
+
+def commit(args):
+    print(base.commit(args.message))
+
+
+def log(args):
+    oid = data.get_head()
+    while oid:
+        commit = base.get_commit(oid)
+
+        print(f"commit {oid}")
+        print(commit.to_str())
+        print()
+
+        oid = commit.parent
