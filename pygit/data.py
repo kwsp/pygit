@@ -1,6 +1,7 @@
-import sys
 import hashlib
 import pathlib
+import sys
+import zlib
 
 GIT_DIR = pathlib.Path(".pygit")
 
@@ -8,6 +9,7 @@ GIT_DIR = pathlib.Path(".pygit")
 def init():
     GIT_DIR.mkdir()
     (GIT_DIR / "objects").mkdir()
+
 
 def check_initialised():
     if not GIT_DIR.exists():
@@ -31,7 +33,7 @@ def hash_object(data: bytes, p_type="blob") -> str:
     if not path.exists():
         path.parent.mkdir(exist_ok=True)
     with path.open("wb") as fp:
-        fp.write(obj)
+        fp.write(zlib.compress(obj))
     return oid
 
 
@@ -42,9 +44,9 @@ def get_object(oid: str, expected="blob") -> bytes:
         sys.exit(-1)
 
     with path.open("rb") as fp:
-        obj = fp.read()
+        obj = zlib.decompress(fp.read())
 
-    header, _, content = obj.partition(b'\0')
+    header, _, content = obj.partition(b"\0")
     type_, _, size = header.decode().partition(" ")
     if type_ != expected:
         print(f"Expected {expected}, got {type_}", file=sys.stderr)

@@ -55,7 +55,7 @@ def hash_object(args):
 
 def cat_file(args):
     data.check_initialised()
-    print(data.get_object(args.object, expected=args.type))
+    print(data.get_object(args.object, expected=args.type).decode())
 
 
 def write_tree(args):

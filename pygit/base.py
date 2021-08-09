@@ -12,7 +12,6 @@ PATH_T = Union[str, pathlib.Path]
 IGNORE_LIST: List[str] = [
     ".pygit",
     ".git",
-    ".gitignore",
     "venv",
     ".mypy_cache",
     ".vim",
