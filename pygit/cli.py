@@ -39,17 +39,22 @@ def parse_args():
     read_tree_parser.set_defaults(func=read_tree)
     read_tree_parser.add_argument("tree")
 
-    commit_tree_parser = commands.add_parser("commit")
-    commit_tree_parser.set_defaults(func=commit)
-    commit_tree_parser.add_argument("-m", "--message", required=True)
+    commit_parser = commands.add_parser("commit")
+    commit_parser.set_defaults(func=commit)
+    commit_parser.add_argument("-m", "--message", required=True)
 
-    log_tree_parser = commands.add_parser("log")
-    log_tree_parser.set_defaults(func=log)
-    log_tree_parser.add_argument("oid", nargs="?")
+    log_parser = commands.add_parser("log")
+    log_parser.set_defaults(func=log)
+    log_parser.add_argument("oid", nargs="?")
 
-    commit_parser = commands.add_parser("checkout")
-    commit_parser.set_defaults(func=checkout)
-    commit_parser.add_argument("commit", help="Oid of the commit to checkout")
+    checkout_parser = commands.add_parser("checkout")
+    checkout_parser.set_defaults(func=checkout)
+    checkout_parser.add_argument("commit", help="Oid of the commit to checkout")
+
+    tag_parser = commands.add_parser("tag")
+    tag_parser.set_defaults(func=tag)
+    tag_parser.add_argument("name")
+    tag_parser.add_argument("tag", help="Oid of the commit/object to tag")
 
     return parser.parse_args()
 
@@ -98,7 +103,8 @@ def commit(args):
 
 @check_initialised
 def log(args):
-    oid = args.oid or data.get_head()
+    # Start log at oid if given, else start at HEAD
+    oid = args.oid or data.get_ref()
     while oid:
         commit = base.get_commit(oid)
 
@@ -112,3 +118,8 @@ def log(args):
 @check_initialised
 def checkout(args):
     base.checkout(args.commit)
+
+
+@check_initialised
+def tag(args):
+    base.create_tag(args.name, args.oid)

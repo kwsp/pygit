@@ -15,9 +15,13 @@ def set_git_root(path: PATH_T):
 
 
 def init():
+    # TODO: check if we are inside a git directory already
+    # Create the git directory
     GIT_DIR.mkdir()
+
     (GIT_DIR / "HEAD").touch()
     (GIT_DIR / "objects").mkdir()
+    (GIT_DIR / "refs").mkdir()
 
 
 def check_initialised():
@@ -26,14 +30,16 @@ def check_initialised():
         sys.exit(-1)
 
 
-def set_head(commit_oid: str):
-    with (GIT_DIR / "HEAD").open("w") as fp:
-        fp.write(commit_oid)
+def update_ref(ref: str, oid: str):
+    path = GIT_DIR / ref
+    path.parent.mkdir(exist_ok=True)
+    with path.open("w") as fp:
+        fp.write(oid)
 
 
-def get_head() -> str:
-    with (GIT_DIR / "HEAD").open("r") as fp:
-        return fp.read()
+def get_ref(ref: str) -> str:
+    with (GIT_DIR / ref).open("r") as fp:
+        return fp.read().strip()
 
 
 def get_oid_path(oid: str) -> Path:

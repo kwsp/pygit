@@ -135,12 +135,12 @@ class Commit(NamedTuple):
 
 def commit(msg: str) -> str:
     tree_oid = write_tree()
-    HEAD = data.get_head()
+    HEAD = data.get_ref("HEAD")
 
     _commit = Commit(tree=tree_oid, parent=HEAD, msg=msg)
     commit_txt = _commit.to_str()
     commit_oid = data.hash_object(commit_txt.encode(), "commit")
-    data.set_head(commit_oid)
+    data.update_ref("HEAD", commit_oid)
 
     return commit_txt
 
@@ -152,7 +152,11 @@ def get_commit(oid: str) -> Commit:
 def checkout(commit_oid: str):
     commit = get_commit(commit_oid)
     read_tree(commit.tree)
-    data.set_head(commit_oid)
+    data.update_ref("HEAD", commit_oid)
+
+
+def create_tag(name: str, oid: str):
+    pass
 
 
 def is_ignored(path: Path) -> bool:
