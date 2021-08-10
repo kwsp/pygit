@@ -84,9 +84,9 @@ def read_tree(tree_oid: str):
 
 
 class Commit(NamedTuple):
-    tree: str
-    parent: str
-    msg: str
+    tree: str  # oid of tree
+    parent: str  # oid of parent
+    msg: str  # commit message
 
     def __repl__(self):
         return self.to_str()
@@ -129,8 +129,14 @@ def commit(msg: str) -> str:
     return commit_txt
 
 
-def get_commit(oid: str):
+def get_commit(oid: str) -> Commit:
     return Commit.from_oid(oid)
+
+
+def checkout(commit_oid: str):
+    commit = get_commit(commit_oid)
+    read_tree(commit.tree)
+    data.set_head(commit_oid)
 
 
 def is_ignored(path: pathlib.Path) -> bool:
