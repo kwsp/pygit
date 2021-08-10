@@ -1,9 +1,8 @@
 import argparse
-import textwrap
 import sys
 
-from pygit import data
-from pygit import base
+import pygit.data as data
+import pygit.base as base
 
 
 def main():
@@ -68,7 +67,7 @@ def hash_object(args):
 
 def cat_file(args):
     data.check_initialised()
-    print(data.get_object(args.object, expected=args.type).decode())
+    sys.stdout.buffer.write(data.get_object(args.object, expected=args.type))
 
 
 def write_tree(args):
@@ -96,6 +95,7 @@ def log(args):
         print()
 
         oid = commit.parent
+
 
 def checkout(args):
     base.checkout(args.commit)

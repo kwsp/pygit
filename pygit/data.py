@@ -1,9 +1,17 @@
+from pathlib import Path
 import hashlib
-import pathlib
 import sys
 import zlib
 
-GIT_DIR = pathlib.Path(".pygit")
+from pygit.defs import *
+
+GIT_ROOT = Path(".")
+GIT_DIR = Path(".pygit")
+
+
+def set_git_root(path: PATH_T):
+    global GIT_ROOT
+    GIT_ROOT = Path(path)
 
 
 def init():
@@ -28,10 +36,10 @@ def get_head() -> str:
         return fp.read()
 
 
-def get_oid_path(oid: str) -> pathlib.Path:
-    dir = oid[:2]
+def get_oid_path(oid: str) -> Path:
+    _dir = oid[:2]
     fname = oid[2:]
-    path = GIT_DIR / "objects" / dir / fname
+    path = GIT_ROOT / GIT_DIR / "objects" / _dir / fname
     return path
 
 
@@ -48,7 +56,7 @@ def hash_object(data: bytes, p_type="blob") -> str:
     return oid
 
 
-def get_object(oid: str, expected="blob") -> bytes:
+def get_object(oid: str, expected="blob", git_root: PATH_T = GIT_DIR) -> bytes:
     path = get_oid_path(oid)
     if not path.exists():
         print("fatal: not a valid object name", oid, file=sys.stderr)

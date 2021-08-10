@@ -1,27 +1,26 @@
-from typing import List, NamedTuple, Union
-import re
-import os
-import pathlib
+from typing import Dict, Final, List, NamedTuple, Union
+from pathlib import Path
 
-from pygit import data
+import pygit.data as data
+from pygit.defs import *
 
-IGNORE_FILE = pathlib.Path(".gitignore")
-PATH_T = Union[str, pathlib.Path]
 
-# TODO: implement .gitignore https://git-scm.com/docs/gitignore
-IGNORE_LIST: List[str] = [
-    ".pygit",
-    ".git",
-    "venv",
-    ".mypy_cache",
-    ".vim",
-    "__pycache__",
-    "pygit.egg-info",
-]
+class GitTreeEntry(NamedTuple):
+    name: str
+    oid: str
+    type: str
+    mode: str
 
 
 def write_tree(dir: PATH_T = "."):
-    dirp = pathlib.Path(dir)
+    """
+    The structure of a tree object:
+        'tree <size>\0<object entries>'
+    where each object in <object entries> is
+        '<mode> <name>\0<sha-1 digest in binary>'
+    https://stackoverflow.com/questions/14790681/what-is-the-internal-format-of-a-git-tree-object
+    """
+    dirp = Path(dir)
     entries = []
 
     for entry in dirp.iterdir():
@@ -30,22 +29,33 @@ def write_tree(dir: PATH_T = "."):
 
         abspath = entry.absolute()
         _type = "blob"
+        _mode = GIT_MODES.REGULAR_NON_EXECUTABLE_FILE
 
-        if entry.is_file():
+        if entry.is_symlink():
+            # git doesn't care if simlink is file or dir
+            _mode = GIT_MODES.SYMBOLIC_LINK
+            oid = data.hash_object(bytes(entry.readlink()))
+
+        elif entry.is_file():
+            if entry.stat().st_mode & 0b001000000:  # Check if file executable
+                _mode = GIT_MODES.REGULAR_EXECUTABLE_FILE
+
             with entry.open("rb") as fp:
                 oid = data.hash_object(fp.read())
+
         elif entry.is_dir():
             _type = "tree"
+            _mode = GIT_MODES.DIRECTORY
             oid = write_tree(entry)
         else:
-            print("Unrecognised file type:")
-            print(abspath)
-            breakpoint()
+            raise ValueError("Unrecognised file type for ", abspath)
 
-        entries.append((entry.name, oid, _type))
+        entries.append(GitTreeEntry(name=entry.name, oid=oid, type=_type, mode=_mode))
 
     entries.sort()
-    tree = "".join(f"{_type} {oid} {name}\n" for name, oid, _type in entries).encode()
+    tree = b""
+    for name, oid, _, mode in entries:
+        tree += f"{mode} {name}\0".encode() + bytes.fromhex(oid)
 
     return data.hash_object(tree, "tree")
 
@@ -54,24 +64,30 @@ def _iter_tree(oid: str):
     if not oid:
         return
 
-    tree = data.get_object(oid, "tree").decode()
-    for entry in tree.splitlines():
-        _type, oid, name = entry.split(" ", 2)
-        yield _type, oid, name
+    buf = data.get_object(oid, "tree")
+    while buf:
+        # extract mode and name
+        mode_name, _, buf = buf.partition(b"\0")
+        mode, _, name = mode_name.partition(b" ")
+
+        # extract sha1 digest in binary (20 bytes)
+        sha1digest = buf[:20]
+        buf = buf[20:]
+
+        yield GitTreeEntry(
+            name=name.decode(), oid=sha1digest.hex(), type="", mode=mode.decode()
+        )
 
 
-def get_tree(oid: str, base_path: PATH_T = "./") -> dict:
+def get_tree(oid: str, base_path: PATH_T = "./") -> Dict[Path, str]:
     res = {}
-    base_path = pathlib.Path(base_path)
-    for _type, oid, name in _iter_tree(oid):
+    base_path = Path(base_path)
+    for name, oid, _, mode in _iter_tree(oid):
         path = base_path / name
-        if _type == "blob":
-            res[path] = oid
-        elif _type == "tree":
+        if mode == GIT_MODES.DIRECTORY:
             res.update(get_tree(oid, path))
         else:
-            print("Unknown type: ", _type)
-            breakpoint()
+            res[path] = oid
     return res
 
 
@@ -91,7 +107,7 @@ class Commit(NamedTuple):
     def __repl__(self):
         return self.to_str()
 
-    def to_str(self):
+    def to_str(self) -> str:
         commit_txt = f"tree {self.tree}\n"
         if self.parent:
             commit_txt += f"parent {self.parent}\n"
@@ -101,7 +117,7 @@ class Commit(NamedTuple):
         return commit_txt
 
     @classmethod
-    def from_oid(cls, oid: str):
+    def from_oid(cls, oid: str) -> "Commit":
         tree = ""
         parent = ""
         raw = data.get_object(oid, "commit").decode()
@@ -139,5 +155,5 @@ def checkout(commit_oid: str):
     data.set_head(commit_oid)
 
 
-def is_ignored(path: pathlib.Path) -> bool:
+def is_ignored(path: Path) -> bool:
     return path.name in IGNORE_LIST
