@@ -59,32 +59,44 @@ def init(args):
     print(f"initialised empty pygit directory in {data.GIT_DIR.absolute()}")
 
 
+def check_initialised(func):
+    "Decorator to run before most commands"
+
+    def _func(*args, **kwargs):
+        data.check_initialised()
+        func(*args, **kwargs)
+
+    return _func
+
+
+@check_initialised
 def hash_object(args):
-    data.check_initialised()
     with open(args.file, "rb") as fp:
         print(data.hash_object(fp.read()))
 
 
+@check_initialised
 def cat_file(args):
-    data.check_initialised()
     sys.stdout.buffer.write(data.get_object(args.object, expected=args.type))
 
 
+@check_initialised
 def write_tree(args):
-    data.check_initialised()
     oid = base.write_tree()
     print(oid)
 
 
+@check_initialised
 def read_tree(args):
-    data.check_initialised()
     base.read_tree(args.tree)
 
 
+@check_initialised
 def commit(args):
     print(base.commit(args.message))
 
 
+@check_initialised
 def log(args):
     oid = args.oid or data.get_head()
     while oid:
@@ -97,5 +109,6 @@ def log(args):
         oid = commit.parent
 
 
+@check_initialised
 def checkout(args):
     base.checkout(args.commit)
