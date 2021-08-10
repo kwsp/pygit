@@ -60,6 +60,6 @@ def get_object(oid: str, expected="blob") -> bytes:
     header, _, content = obj.partition(b"\0")
     type_, _, size = header.decode().partition(" ")
     if type_ != expected:
-        print(f"Expected {expected}, got {type_}", file=sys.stderr)
+        print(f"Expected oid of type {expected}, got {type_}", file=sys.stderr)
         sys.exit(-1)
     return content

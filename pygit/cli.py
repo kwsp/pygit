@@ -46,6 +46,7 @@ def parse_args():
 
     log_tree_parser = commands.add_parser("log")
     log_tree_parser.set_defaults(func=log)
+    log_tree_parser.add_argument("oid", nargs="?")
 
     return parser.parse_args()
 
@@ -82,7 +83,7 @@ def commit(args):
 
 
 def log(args):
-    oid = data.get_head()
+    oid = args.oid or data.get_head()
     while oid:
         commit = base.get_commit(oid)
 
