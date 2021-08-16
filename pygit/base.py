@@ -1,4 +1,4 @@
-from typing import Dict, Final, List, NamedTuple, Union
+from typing import Dict, Iterable, NamedTuple
 from pathlib import Path
 
 import pygit.data as data
@@ -137,7 +137,7 @@ def commit(msg: str) -> str:
     tree_oid = write_tree()
     HEAD = data.get_ref("HEAD")
 
-    _commit = Commit(tree=tree_oid, parent=HEAD, msg=msg)
+    _commit = Commit(tree=tree_oid, parent=HEAD, msg=msg)  # type: ignore
     commit_txt = _commit.to_str()
     commit_oid = data.hash_object(commit_txt.encode(), "commit")
     data.update_ref("HEAD", commit_oid)
@@ -157,6 +157,20 @@ def checkout(commit_oid: str):
 
 def create_tag(name: str, oid: str):
     data.update_ref(f"refs/tags/{name}", oid)
+
+
+def iter_commits_and_parents(oids: Iterable):
+    oids = set(oids)
+    visited = set()
+    while oids:
+        oid = oids.pop()
+        if not oid or oid in visited:
+            continue
+        visited.add(oid)
+        yield oid
+
+        commit = get_commit(oid)
+        oids.add(commit.parent)
 
 
 def get_oid(name: str) -> str:
