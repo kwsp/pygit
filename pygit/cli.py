@@ -19,6 +19,10 @@ def parse_args():
     init_parser = commands.add_parser("init")
     init_parser.set_defaults(func=init)
 
+    # Pass this as type to all args that expect oid
+    # It handles conversion from tag name to oid
+    oid = base.get_oid
+
     hash_object_parser = commands.add_parser("hash-object")
     hash_object_parser.set_defaults(func=hash_object)
     hash_object_parser.add_argument("file")
@@ -30,14 +34,14 @@ def parse_args():
         choices=["blob", "tree", "commit", "log"],
         help="Object type",
     )
-    cat_file_parser.add_argument("object", help="Object identifier")
+    cat_file_parser.add_argument("object", type=oid, help="Object identifier")
 
     write_tree_parser = commands.add_parser("write-tree")
     write_tree_parser.set_defaults(func=write_tree)
 
     read_tree_parser = commands.add_parser("read-tree")
     read_tree_parser.set_defaults(func=read_tree)
-    read_tree_parser.add_argument("tree")
+    read_tree_parser.add_argument("tree", type=oid)
 
     commit_parser = commands.add_parser("commit")
     commit_parser.set_defaults(func=commit)
@@ -45,16 +49,23 @@ def parse_args():
 
     log_parser = commands.add_parser("log")
     log_parser.set_defaults(func=log)
-    log_parser.add_argument("oid", nargs="?")
+    log_parser.add_argument("oid", default="@", type=oid, nargs="?")
 
     checkout_parser = commands.add_parser("checkout")
     checkout_parser.set_defaults(func=checkout)
-    checkout_parser.add_argument("commit", help="Oid of the commit to checkout")
+    checkout_parser.add_argument(
+        "oid", default="@", type=oid, help="Oid of the commit to checkout"
+    )
 
     tag_parser = commands.add_parser("tag")
     tag_parser.set_defaults(func=tag)
     tag_parser.add_argument("name")
-    tag_parser.add_argument("tag", help="Oid of the commit/object to tag")
+    tag_parser.add_argument(
+        "oid", default="@", type=oid, help="Oid of the commit/object to tag"
+    )
+
+    k_parser = commands.add_parser("k")
+    k_parser.set_defaults(func=k)
 
     return parser.parse_args()
 
@@ -104,7 +115,7 @@ def commit(args):
 @check_initialised
 def log(args):
     # Start log at oid if given, else start at HEAD
-    oid = args.oid or data.get_ref()
+    oid = args.oid or data.get_ref("HEAD")
     while oid:
         commit = base.get_commit(oid)
 
@@ -123,3 +134,9 @@ def checkout(args):
 @check_initialised
 def tag(args):
     base.create_tag(args.name, args.oid)
+
+
+@check_initialised
+def k(args):
+    for refname, ref in data.iter_refs():
+        print(refname, ref)

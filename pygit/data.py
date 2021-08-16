@@ -1,3 +1,4 @@
+from typing import Optional
 from pathlib import Path
 import hashlib
 import sys
@@ -37,9 +38,12 @@ def update_ref(ref: str, oid: str):
         fp.write(oid)
 
 
-def get_ref(ref: str) -> str:
-    with (GIT_DIR / ref).open("r") as fp:
-        return fp.read().strip()
+def get_ref(ref: str) -> Optional[str]:
+    path = GIT_DIR / ref
+    if path.exists():
+        with path.open("r") as fp:
+            return fp.read().strip()
+    return None
 
 
 def get_oid_path(oid: str) -> Path:
@@ -77,3 +81,15 @@ def get_object(oid: str, expected="blob", git_root: PATH_T = GIT_DIR) -> bytes:
         print(f"Expected oid of type {expected}, got {type_}", file=sys.stderr)
         sys.exit(-1)
     return content
+
+
+def iter_refs():
+    refs = ["HEAD"]
+    for path in (GIT_DIR / "refs").glob("**/*"):
+        if path.is_dir():
+            continue
+        relpath = path.relative_to(GIT_DIR)
+        refs.append(relpath)
+
+    for ref in refs:
+        yield ref, get_ref(ref)

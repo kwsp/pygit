@@ -156,7 +156,36 @@ def checkout(commit_oid: str):
 
 
 def create_tag(name: str, oid: str):
-    pass
+    data.update_ref(f"refs/tags/{name}", oid)
+
+
+def get_oid(name: str) -> str:
+    "Get oid from a ref name"
+    if name == "@":
+        name = "HEAD"
+
+    refs_to_try = [
+        name,
+        f"refs/{name}",
+        f"refs/tags/{name}",
+        f"refs/heads/{name}",
+    ]
+    for ref in refs_to_try:
+        if oid := data.get_ref(ref):
+            return oid
+
+    # check if name is hexdigest
+    isHex = False
+    try:
+        _ = int(name, 16)
+    except ValueError:
+        pass
+    else:
+        isHex = True
+
+    if len(name) == 40 and isHex:
+        return name
+    raise ValueError("Unknown name: ", name)
 
 
 def is_ignored(path: Path) -> bool:
