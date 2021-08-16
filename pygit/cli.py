@@ -1,5 +1,6 @@
 import argparse
 import sys
+import textwrap
 
 import pygit.data as data
 import pygit.base as base
@@ -114,16 +115,12 @@ def commit(args):
 
 @check_initialised
 def log(args):
-    # Start log at oid if given, else start at HEAD
-    oid = args.oid or data.get_ref("HEAD")
-    while oid:
+    for oid in base.iter_commits_and_parents({args.oid}):
         commit = base.get_commit(oid)
 
         print(f"commit {oid}")
-        print(commit.to_str())
+        print(textwrap.indent(commit.msg, "    "))
         print()
-
-        oid = commit.parent
 
 
 @check_initialised

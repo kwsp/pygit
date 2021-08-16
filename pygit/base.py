@@ -1,4 +1,5 @@
 from typing import Dict, Iterable, NamedTuple
+from collections import deque
 from pathlib import Path
 
 import pygit.data as data
@@ -160,17 +161,17 @@ def create_tag(name: str, oid: str):
 
 
 def iter_commits_and_parents(oids: Iterable):
-    oids = set(oids)
+    oids = deque(oids)  # Use deque so order is deterministic
     visited = set()
     while oids:
-        oid = oids.pop()
+        oid = oids.popleft()
         if not oid or oid in visited:
             continue
         visited.add(oid)
         yield oid
 
         commit = get_commit(oid)
-        oids.add(commit.parent)
+        oids.appendleft(commit.parent)  # return parent next
 
 
 def get_oid(name: str) -> str:
